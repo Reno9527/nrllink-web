@@ -67,6 +67,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (pathValue) => pathValue.replace(new RegExp(`^${baseApi}`), ''),
         },
+        // OIDC 是整页跳转（/user/oidc/login），不走 baseApi 前缀，需要单独代理到后端
+        '/user/oidc': {
+          target: proxyTarget,
+          changeOrigin: true,
+        },
       },
     },
     css: {

@@ -228,7 +228,62 @@
       @opened="focusLoginField"
     >
       <div class="login-dialog-inner">
+        <div v-if="oidcEnabled" class="login-tabs" role="tablist">
+          <span
+            class="login-tab-slider"
+            :class="{ 'is-right': loginTab === 'local' }"
+            aria-hidden="true"
+          />
+          <button
+            type="button"
+            class="login-tab"
+            :class="{ 'is-active': loginTab === 'oidc' }"
+            role="tab"
+            :aria-selected="loginTab === 'oidc'"
+            @click="switchLoginTab('oidc')"
+          >
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path
+                d="M12 2 4.5 4.8v5.4c0 4.6 3.2 8.9 7.5 9.9 4.3-1 7.5-5.3 7.5-9.9V4.8L12 2Zm0 2.2 5.5 2.1v3.9c0 3.6-2.4 7-5.5 7.9-3.1-.9-5.5-4.3-5.5-7.9V6.3L12 4.2Zm3.23 4.13a.9.9 0 0 1 .07 1.27l-4.6 4.9a.9.9 0 0 1-1.33.03l-2.5-2.5a.9.9 0 1 1 1.27-1.27l1.8 1.81 4.02-4.17a.9.9 0 0 1 1.27-.07Z"
+              />
+            </svg>
+            <span>{{ $t('login.oidcTab') }}</span>
+          </button>
+          <button
+            type="button"
+            class="login-tab"
+            :class="{ 'is-active': loginTab === 'local' }"
+            role="tab"
+            :aria-selected="loginTab === 'local'"
+            @click="switchLoginTab('local')"
+          >
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path
+                d="M12 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8Zm0 1.8a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 0 0 0-4.4ZM12 13c3.1 0 5.9 1.5 7.4 3.9a.9.9 0 0 1-1.5 1c-1.2-1.9-3.4-3.1-5.9-3.1s-4.7 1.2-5.9 3.1a.9.9 0 0 1-1.5-1C6.1 14.5 8.9 13 12 13Z"
+              />
+            </svg>
+            <span>{{ $t('login.localTab') }}</span>
+          </button>
+        </div>
+
+        <div v-if="oidcEnabled && loginTab === 'oidc'" class="oidc-panel">
+          <div class="oidc-panel-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path
+                d="M12 2 4.5 4.8v5.4c0 4.6 3.2 8.9 7.5 9.9 4.3-1 7.5-5.3 7.5-9.9V4.8L12 2Zm0 2.2 5.5 2.1v3.9c0 3.6-2.4 7-5.5 7.9-3.1-.9-5.5-4.3-5.5-7.9V6.3L12 4.2Zm3.23 4.13a.9.9 0 0 1 .07 1.27l-4.6 4.9a.9.9 0 0 1-1.33.03l-2.5-2.5a.9.9 0 1 1 1.27-1.27l1.8 1.81 4.02-4.17a.9.9 0 0 1 1.27-.07Z"
+              />
+            </svg>
+          </div>
+          <p class="oidc-panel-title">{{ oidcButtonName || $t('login.oidcDefaultButton') }}</p>
+          <p class="oidc-panel-tip">{{ $t('login.oidcTabTip') }}</p>
+          <el-button class="oidc-login-button" @click.prevent="handleOidcLogin">
+            {{ oidcButtonName || $t('login.oidcDefaultButton') }}
+          </el-button>
+          <p class="oidc-panel-redirect">{{ $t('login.oidcRedirectTip') }}</p>
+        </div>
+
         <el-form
+          v-show="!oidcEnabled || loginTab === 'local'"
           ref="loginForm"
           :model="loginForm"
           :rules="loginRules"
@@ -287,9 +342,6 @@
               @click.prevent="handleLogin"
               >{{ $t('login.logIn') }}</el-button
             >
-            <el-button v-if="oidcEnabled" class="oidc-button" @click.prevent="handleOidcLogin">
-              {{ oidcButtonName || $t('login.oidcDefaultButton') }}
-            </el-button>
           </div>
         </el-form>
       </div>
@@ -403,6 +455,7 @@ export default {
       registerDialogVisible: false,
       oidcEnabled: false,
       oidcButtonName: '',
+      loginTab: 'local',
       redirect: undefined,
       serverList: [],
       nrlmpImg: '',
@@ -884,7 +937,16 @@ export default {
       })
     },
     openLoginDialog() {
+      this.loginTab = this.oidcEnabled ? 'oidc' : 'local'
       this.loginDialogVisible = true
+    },
+    switchLoginTab(tab) {
+      this.loginTab = tab
+      if (tab === 'local') {
+        this.$nextTick(() => {
+          this.focusLoginField()
+        })
+      }
     },
     goUniverse() {
       this.$router.push('/universe')
@@ -897,6 +959,9 @@ export default {
       this.openRegisterDialog()
     },
     focusLoginField() {
+      if (this.oidcEnabled && this.loginTab !== 'local') {
+        return
+      }
       this.$nextTick(() => {
         if (this.loginForm.username === '' && this.$refs.username) {
           this.$refs.username.focus()
@@ -918,6 +983,7 @@ export default {
           const data = response.data || {}
           this.oidcEnabled = !!data.enabled
           this.oidcButtonName = data.button_name || ''
+          this.loginTab = this.oidcEnabled ? 'oidc' : 'local'
         })
         .catch(() => {})
     },
@@ -1091,34 +1157,157 @@ export default {
           0 0 18px var(--platform-accent-22) !important;
       }
     }
+  }
 
-    .oidc-button {
-      flex: 1;
-      min-width: 0;
-      height: 48px !important;
-      font-size: 15px !important;
-      font-weight: 600 !important;
-      border-radius: 14px !important;
-      letter-spacing: 0.6px;
-      margin: 0 !important;
-      color: var(--platform-accent) !important;
-      background: var(--platform-accent-10) !important;
-      border: 1px solid var(--platform-border-strong) !important;
-      box-shadow:
-        0 10px 26px var(--platform-accent-14),
-        0 0 0 1px var(--platform-accent-08) inset !important;
-      transition: all 0.3s ease;
+  .login-tabs {
+    position: relative;
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4px;
+    margin-bottom: 22px;
+    border-radius: 14px;
+    background: var(--platform-surface);
+    border: 1px solid var(--platform-border);
+  }
 
-      &:hover {
-        transform: translateY(-2px);
-        color: var(--platform-ink) !important;
-        background: var(--platform-accent-18) !important;
-        border-color: var(--platform-accent-34) !important;
-        box-shadow:
-          0 16px 38px var(--platform-accent-22),
-          0 0 16px var(--platform-accent-18) !important;
-      }
+  .login-tab-slider {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    width: calc(50% - 4px);
+    border-radius: 11px;
+    background: linear-gradient(
+      90deg,
+      var(--platform-accent-18) 0%,
+      var(--platform-accent-10) 100%
+    );
+    border: 1px solid var(--platform-accent-34);
+    box-shadow:
+      0 6px 18px var(--platform-accent-14),
+      0 0 0 1px var(--platform-accent-08) inset;
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &.is-right {
+      transform: translateX(100%);
     }
+  }
+
+  .login-tab {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 8px;
+    border: none;
+    background: transparent;
+    color: var(--platform-ink-dim);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    transition: color 0.25s ease;
+
+    svg {
+      width: 17px;
+      height: 17px;
+      fill: currentColor;
+      flex-shrink: 0;
+    }
+
+    &.is-active {
+      color: var(--platform-ink);
+    }
+
+    &:hover:not(.is-active) {
+      color: var(--platform-accent);
+    }
+  }
+
+  .oidc-panel {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 6px 0 8px;
+  }
+
+  .oidc-panel-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    margin-bottom: 16px;
+    color: var(--platform-accent);
+    background: var(--platform-accent-10);
+    border: 1px solid var(--platform-border-strong);
+    box-shadow:
+      0 10px 26px var(--platform-accent-14),
+      0 0 0 1px var(--platform-accent-08) inset;
+
+    svg {
+      width: 30px;
+      height: 30px;
+      fill: currentColor;
+    }
+  }
+
+  .oidc-panel-title {
+    margin: 0;
+    color: var(--platform-ink);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+
+  .oidc-panel-tip {
+    margin: 8px 0 22px;
+    color: var(--platform-ink-dim);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .oidc-login-button {
+    width: 100%;
+    height: 48px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    border-radius: 14px !important;
+    letter-spacing: 0.6px;
+    margin: 0 !important;
+    background: linear-gradient(
+      90deg,
+      var(--platform-accent) 0%,
+      var(--platform-accent-2) 100%
+    ) !important;
+    border: none !important;
+    box-shadow:
+      0 14px 34px var(--platform-accent-22),
+      0 0 0 1px rgba(255, 255, 255, 0.14) inset !important;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 18px 44px var(--platform-accent-25),
+        0 0 18px var(--platform-accent-22) !important;
+    }
+  }
+
+  .oidc-panel-redirect {
+    margin: 14px 0 0;
+    color: var(--platform-ink-dim);
+    font-size: 12px;
+    opacity: 0.85;
   }
 
   .el-dialog__header {

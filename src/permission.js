@@ -30,6 +30,34 @@ function ensureCatchAllRoute() {
   }
 }
 
+const CHUNK_RELOAD_FLAG = 'nrllink-chunk-reload-at'
+
+// 部署新版本后旧 chunk 被替换，缓存旧入口的浏览器动态 import 会 404 并挂起导航；
+// 捕获该错误后整页刷新一次自愈，一分钟内最多刷新一次防止服务器文件真缺失时死循环
+router.onError((error) => {
+  const message = String((error && error.message) || '')
+  if (!/dynamically imported module|module script failed/i.test(message)) {
+    return
+  }
+  let lastReloadAt = 0
+  try {
+    lastReloadAt = Number(window.sessionStorage.getItem(CHUNK_RELOAD_FLAG)) || 0
+  } catch {
+    // sessionStorage 不可用时按未刷新过处理
+  }
+  const now = Date.now()
+  if (now - lastReloadAt > 60000) {
+    try {
+      window.sessionStorage.setItem(CHUNK_RELOAD_FLAG, String(now))
+    } catch {
+      // 忽略写入失败
+    }
+    window.location.reload()
+    return
+  }
+  ElMessage.error('页面资源加载失败，请强制刷新（Ctrl+F5）后重试')
+})
+
 router.beforeEach(async (to, from) => {
   const userStore = useUserStore(pinia)
   const permissionStore = usePermissionStore(pinia)

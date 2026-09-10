@@ -15,6 +15,30 @@
             }}</router-link>
           </div>
 
+          <div v-if="oidcEnabled" class="oidc-register-panel">
+            <div class="oidc-register-info">
+              <span class="oidc-register-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path
+                    d="M12 2 4.5 4.8v5.4c0 4.6 3.2 8.9 7.5 9.9 4.3-1 7.5-5.3 7.5-9.9V4.8L12 2Zm0 2.2 5.5 2.1v3.9c0 3.6-2.4 7-5.5 7.9-3.1-.9-5.5-4.3-5.5-7.9V6.3L12 4.2Zm3.23 4.13a.9.9 0 0 1 .07 1.27l-4.6 4.9a.9.9 0 0 1-1.33.03l-2.5-2.5a.9.9 0 1 1 1.27-1.27l1.8 1.81 4.02-4.17a.9.9 0 0 1 1.27-.07Z"
+                  />
+                </svg>
+              </span>
+              <div class="oidc-register-text">
+                <p class="oidc-register-title">
+                  {{ oidcButtonName || $t('login.oidcDefaultButton') }}
+                </p>
+                <p class="oidc-register-tip">{{ $t('reg.oidcTip') }}</p>
+              </div>
+            </div>
+            <el-button class="oidc-register-button" @click.prevent="handleOidcRegister">
+              {{ $t('reg.oidcButton') }}
+            </el-button>
+          </div>
+          <div v-if="oidcEnabled" class="register-divider">
+            <span>{{ $t('reg.localDivider') }}</span>
+          </div>
+
           <el-form
             ref="registerForm"
             :model="registerForm"
@@ -22,68 +46,86 @@
             class="register-form"
             label-position="top"
           >
-            <div class="form-grid">
-              <el-form-item prop="callsign" :label="$t('register.callsign')">
+            <div class="form-section">
+              <div class="form-section-title">{{ $t('reg.sectionBasic') }}</div>
+              <div class="form-grid">
+                <el-form-item prop="callsign" :label="$t('register.callsign')">
+                  <el-input
+                    v-model="registerForm.callsign"
+                    :placeholder="$t('reg.callsignPlaceholder')"
+                    maxlength="6"
+                    @input="handleCallsignInput"
+                  />
+                </el-form-item>
+
+                <el-form-item prop="name" :label="$t('register.name')">
+                  <el-input v-model="registerForm.name" :placeholder="$t('reg.namePlaceholder')" />
+                </el-form-item>
+
+                <el-form-item prop="phone" :label="$t('reg.phone')">
+                  <el-input
+                    v-model="registerForm.phone"
+                    :placeholder="$t('reg.phonePlaceholder')"
+                  />
+                </el-form-item>
+
+                <el-form-item prop="password" :label="$t('reg.password')">
+                  <el-input
+                    v-model="registerForm.password"
+                    :placeholder="$t('reg.passwordPlaceholder')"
+                    show-password
+                    type="password"
+                  />
+                </el-form-item>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="form-section-title">{{ $t('reg.sectionContact') }}</div>
+              <el-form-item prop="mail" :label="$t('register.mail')">
+                <el-input v-model="registerForm.mail" :placeholder="$t('reg.mailPlaceholder')" />
+              </el-form-item>
+
+              <el-form-item prop="address" :label="$t('register.address')">
                 <el-input
-                  v-model="registerForm.callsign"
-                  :placeholder="$t('reg.callsignPlaceholder')"
-                  maxlength="6"
-                  @input="handleCallsignInput"
-                />
-              </el-form-item>
-
-              <el-form-item prop="name" :label="$t('register.name')">
-                <el-input v-model="registerForm.name" :placeholder="$t('reg.namePlaceholder')" />
-              </el-form-item>
-
-              <el-form-item prop="phone" :label="$t('reg.phone')">
-                <el-input v-model="registerForm.phone" :placeholder="$t('reg.phonePlaceholder')" />
-              </el-form-item>
-
-              <el-form-item prop="password" :label="$t('reg.password')">
-                <el-input
-                  v-model="registerForm.password"
-                  :placeholder="$t('reg.passwordPlaceholder')"
-                  show-password
-                  type="password"
+                  v-model="registerForm.address"
+                  :placeholder="$t('reg.addressPlaceholder')"
+                  type="textarea"
+                  :rows="2"
                 />
               </el-form-item>
             </div>
 
-            <el-form-item prop="mail" :label="$t('register.mail')">
-              <el-input v-model="registerForm.mail" :placeholder="$t('reg.mailPlaceholder')" />
-            </el-form-item>
-
-            <el-form-item prop="address" :label="$t('register.address')">
-              <el-input
-                v-model="registerForm.address"
-                :placeholder="$t('reg.addressPlaceholder')"
-                type="textarea"
-                :rows="2"
-              />
-            </el-form-item>
-
-            <el-form-item prop="license" :label="$t('reg.license')">
-              <el-upload
-                class="upload-box"
-                action="#"
-                :show-file-list="false"
-                :auto-upload="false"
-                :before-upload="handleBeforeUpload"
-                :on-change="handleFileChange"
-                accept="image/*"
-              >
-                <div class="upload-inner">
-                  <div class="upload-title">{{ $t('reg.uploadTitle') }}</div>
-                  <div class="upload-meta">
-                    {{
-                      licenseName ? $t('reg.selectedPrefix') + licenseName : $t('reg.uploadHint')
-                    }}
+            <div class="form-section">
+              <div class="form-section-title">{{ $t('reg.sectionLicense') }}</div>
+              <el-form-item prop="license" :label="$t('reg.license')">
+                <el-upload
+                  class="upload-box"
+                  action="#"
+                  :show-file-list="false"
+                  :auto-upload="false"
+                  :before-upload="handleBeforeUpload"
+                  :on-change="handleFileChange"
+                  accept="image/*"
+                >
+                  <div class="upload-inner" :class="{ 'has-preview': licensePreview }">
+                    <img
+                      v-if="licensePreview"
+                      :src="licensePreview"
+                      class="upload-preview"
+                      :alt="$t('reg.uploadTitle')"
+                    />
+                    <div class="upload-title">{{ $t('reg.uploadTitle') }}</div>
+                    <div class="upload-meta">
+                      {{
+                        licenseName ? $t('reg.selectedPrefix') + licenseName : $t('reg.uploadHint')
+                      }}
+                    </div>
+                    <el-button class="upload-button" plain>{{ $t('reg.chooseFile') }}</el-button>
                   </div>
-                  <el-button class="upload-button" plain>{{ $t('reg.chooseFile') }}</el-button>
-                </div>
-              </el-upload>
-            </el-form-item>
+                </el-upload>
+              </el-form-item>
+            </div>
 
             <el-button
               :loading="loading || fileProcessing"
@@ -104,6 +146,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { createRegUpload } from '@/api/register'
 import { getplatforminfo } from '@/api/platform'
+import { getOidcConfig } from '@/api/user'
 
 const MAX_LICENSE_BYTES = 800 * 1024
 
@@ -181,13 +224,20 @@ export default {
       },
       licenseFile: null,
       licenseName: '',
+      licensePreview: '',
       loading: false,
       fileProcessing: false,
       platformName: '',
+      oidcEnabled: false,
+      oidcButtonName: '',
     }
   },
   created() {
     this.fetchPlatformInfo()
+    this.fetchOidcConfig()
+  },
+  beforeUnmount() {
+    this.setLicensePreview(null)
   },
   methods: {
     fetchPlatformInfo() {
@@ -196,6 +246,25 @@ export default {
           this.platformName = response?.data?.items?.name || ''
         })
         .catch(() => {})
+    },
+    fetchOidcConfig() {
+      getOidcConfig()
+        .then((response) => {
+          const data = response.data || {}
+          this.oidcEnabled = !!data.enabled
+          this.oidcButtonName = data.button_name || ''
+        })
+        .catch(() => {})
+    },
+    handleOidcRegister() {
+      // 与登录同一入口，统一认证平台侧提供注册/登录
+      window.location.href = '/user/oidc/login'
+    },
+    setLicensePreview(file) {
+      if (this.licensePreview) {
+        URL.revokeObjectURL(this.licensePreview)
+      }
+      this.licensePreview = file ? URL.createObjectURL(file) : ''
     },
     handleCallsignInput(value) {
       this.registerForm.callsign = String(value || '')
@@ -321,10 +390,12 @@ export default {
         this.licenseFile = finalFile
         this.licenseName = `${finalFile.name} (${this.formatSize(finalFile.size)})${compressed ? this.$t('reg.compressedTag') : ''}`
         this.registerForm.license = this.licenseName
+        this.setLicensePreview(finalFile)
       } catch (error) {
         this.licenseFile = null
         this.licenseName = ''
         this.registerForm.license = ''
+        this.setLicensePreview(null)
         ElMessage.error(error?.message || this.$t('reg.processFail'))
       } finally {
         this.fileProcessing = false
@@ -687,6 +758,148 @@ body,
     }
   }
 
+  .oidc-register-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+    border-radius: 16px;
+    border: 1px solid var(--platform-accent-34);
+    background: linear-gradient(90deg, var(--platform-accent-10) 0%, var(--platform-surface) 100%);
+    box-shadow: 0 10px 26px var(--platform-accent-14);
+  }
+
+  .oidc-register-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .oidc-register-icon {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    color: var(--platform-accent);
+    background: var(--platform-accent-10);
+    border: 1px solid var(--platform-border-strong);
+
+    svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+  }
+
+  .oidc-register-text {
+    min-width: 0;
+  }
+
+  .oidc-register-title {
+    margin: 0;
+    color: var(--platform-ink);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .oidc-register-tip {
+    margin: 3px 0 0;
+    color: var(--platform-ink-dim);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .oidc-register-button {
+    flex-shrink: 0;
+    height: 40px;
+    padding: 0 18px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    color: var(--platform-accent) !important;
+    background: var(--platform-accent-10) !important;
+    border: 1px solid var(--platform-border-strong) !important;
+    transition: all 0.25s ease;
+
+    &:hover {
+      color: var(--platform-ink) !important;
+      background: var(--platform-accent-18) !important;
+      border-color: var(--platform-accent-34) !important;
+      transform: translateY(-1px);
+    }
+  }
+
+  .register-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 2px 0 14px;
+    color: var(--platform-ink-dim);
+    font-size: 12px;
+    letter-spacing: 0.4px;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--platform-border);
+    }
+  }
+
+  .form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    color: var(--platform-accent);
+
+    &::before {
+      content: '';
+      width: 4px;
+      height: 14px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, var(--platform-accent), var(--platform-accent-2));
+    }
+  }
+
+  .upload-preview {
+    width: 100%;
+    max-height: 140px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid var(--platform-border);
+  }
+
+  .upload-inner.has-preview {
+    border-style: solid;
+    border-color: var(--platform-border-strong);
+  }
+
+  &.embedded {
+    .oidc-register-panel {
+      padding: 12px 14px;
+      margin-bottom: 12px;
+    }
+
+    .register-divider {
+      margin-bottom: 12px;
+    }
+  }
+
   .title-container {
     position: relative;
     text-align: center;
@@ -830,6 +1043,16 @@ body,
     .login-form-card {
       padding: 22px 18px 20px;
       border-radius: 16px;
+    }
+
+    .oidc-register-panel {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+
+    .oidc-register-button {
+      width: 100%;
     }
 
     .title-container {
